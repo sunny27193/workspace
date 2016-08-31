@@ -13,7 +13,7 @@ function initMap() {
         center: new google.maps.LatLng(12.9382328, 77.6289805)
     };
     map = new google.maps.Map(document.getElementById('map'), mapOptions);
-    ko.applyBindings(new AppViewModel());
+    ko.applyBindings(new appViewModel());
 }
 
 // listing to be displayed
@@ -43,11 +43,14 @@ var placeArray = [{
 // setting up data for info Window
 var Location = function(data) {
     var self = this;
-    this.name = data.name;
-    this.lat = data.lat;
-    this.long = data.long;
-    this.URL = this.street = this.city = this.phone = "";
-    this.visible = ko.observable(true);
+    this.name = ko.observable(self.name);
+    this.lat = ko.observable(self.lat);
+    this.long = ko.observable(self.long);
+    this.URL = ko.observable("");
+    this.street = ko.observable("");
+    this.city = ko.observable("");
+    this.phone = ko.observable("");
+    this.filtervisible = ko.observable(true);
 
     // set up foursquare url
 
@@ -74,8 +77,8 @@ var Location = function(data) {
         title: data.name
     });
 
-    this.showMarker = ko.computed(function() {
-        if (this.visible() === true) {
+    this.showInfo = ko.computed(function() {
+        if (this.filtervisible() === true) {
             this.marker.setMap(map);
         } else {
             this.marker.setMap(null);
@@ -99,27 +102,40 @@ var Location = function(data) {
     };
 };
 
-function AppViewModel() {
+function appViewModel() {
     var self = this;
-    this.searchTerm = ko.observable("");
-    this.locationList = ko.observableArray([]);
+    self.searchItem = ko.observable("");
+    self.locationList = ko.observableArray([]);
+    self.showList = ko.observableArray();
+
     placeArray.forEach(function(locationItem) {
         self.locationList.push(new Location(locationItem));
     });
-    this.filteredList = ko.computed(function() {
-        var filter = self.searchTerm().toLowerCase();
-        if (!filter) {
+
+
+
+//
+
+        self.filterMarkers = function() {
+            var filter = self.searchItem().toLowerCase();
+            self.showList().removeAll();
+
             self.locationList().forEach(function(locationItem) {
-                locationItem.visible(true);
-            });
-            return self.locationList();
-        } else {
-            return ko.utils.arrayFilter(self.locationList(), function(locationItem) {
-                var string = locationItem.name.toLowerCase();
-                var result = (string.search(filter) >= 0);
-                locationItem.visible(result);
-                return result;
+
+                locationItem.marker.setVisible(!1), -1 !== locationItem.name().toLowerCase().indexOf(filter) && this.showList.push(locationItem)
+            }), self.showList().forEach(function(self) {
+                self.marker.setVisible(!0)
             });
         }
-    }, self);
+
+}
+
+function googleError() {
+    "use strict";
+    document.getElementById("map").innerHTML = "<h2>Google Maps is not loading. Please try refreshing the page later.</h2>"
+}
+
+function foursquareError() {
+    "use strict";
+    document.getElementById("map").innerHTML = "<h2>Four Square data is not loading. Please try refreshing the page later.</h2>"
 }
